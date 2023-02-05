@@ -1,49 +1,18 @@
 import React, { useState, useRef } from "react";
 import TransformerRectangel from "./TransformerRectangel";
 import { Layer, Rect, Stage, Transformer } from "react-konva";
-const initialPiks = [
-  {
-    x: 10,
-    y: 10,
-    points: [50, 50, 150, 50, 100, 150],
-    tension: 0.5,
-    fill: "red",
-    id: "blob1",
-  },
-  {
-    x: 10,
-    y: 70,
-    points: [50, 50, 150, 50, 100, 150],
-    tension: 0.5,
-    fill: "green",
-    id: "blob2",
-  },
-  {
-    x: 10,
-    y: 130,
-    points: [50, 50, 150, 50, 100, 150],
-    tension: 0.5,
-    fill: "yellow",
-    id: "blob3",
-  },
-];
+
 const App = () => {
   const [piks, setPiks] = useState([]);
+  const [rects, setRects] = useState([]);
+  const [isRects, setIsRects] = useState(false);
+  const [isPiks, setIsPiks] = useState(false);
+
   const [selectShape, setSelectShape] = useState(null);
   const [nodesArray, setNodesArray] = useState([]);
   const trRef = useRef();
   const layerRef = useRef();
   const Konva = window.Konva;
-  const checkDeselect = (e) => {
-    // deselect when clicked on empty area
-    const clickedOnEmpty = e.target === e.target.getStage();
-    if (clickedOnEmpty) {
-      setSelectShape(null);
-      trRef.current.nodes([]);
-      setNodesArray([]);
-      // layerRef.current.remove(selectionRectangle);
-    }
-  };
   const selectionRectRef = useRef();
   const selection = useRef({
     visible: false,
@@ -81,17 +50,6 @@ const App = () => {
     selection.current.y2 = pos.y;
     updateSelectionRect();
   };
-
-  const onMouseMove = (e) => {
-    if (!selection.current.visible) {
-      return;
-    }
-    const pos = e.target.getStage().getPointerPosition();
-    selection.current.x2 = pos.x;
-    selection.current.y2 = pos.y;
-    updateSelectionRect();
-  };
-
   const onMouseUp = () => {
     oldPos.current = null;
     if (!selection.current.visible) {
@@ -111,84 +69,92 @@ const App = () => {
     Konva.listenClickTap = false;
     updateSelectionRect();
   };
-
-  const onClickTap = (e) => {
-    // if we are selecting with rect, do nothing
-    if (selection.visible()) {
+  const onMouseMove = (e) => {
+    if (!selection.current.visible) {
       return;
     }
-    let stage = e.target.getStage();
-    let layer = layerRef.current;
-    let tr = trRef.current;
-    // if click on empty area - remove all selections
-    if (e.target === stage) {
-      setSelectShape(null);
-      setNodesArray([]);
-      tr.nodes([]);
-      layer.draw();
-      return;
-    }
-
-    // do nothing if clicked NOT on our piks
-    if (!e.target.hasName(".rect")) {
-      return;
-    }
-
-    // do we press shift or ctrl?
-    const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
-    const isSelected = tr.nodes().indexOf(e.target) >= 0;
-
-    if (!metaPressed && !isSelected) {
-      // if no key pressed and the node is not selected
-      // select just one
-      tr.nodes([e.target]);
-    } else if (metaPressed && isSelected) {
-      // if we pressed keys and node was selected
-      // we need to remove it from selection:
-      const nodes = tr.nodes().slice(); // use slice to have new copy of array
-      // remove node from array
-      nodes.splice(nodes.indexOf(e.target), 1);
-      tr.nodes(nodes);
-    } else if (metaPressed && !isSelected) {
-      // add the node into selection
-      const nodes = tr.nodes().concat([e.target]);
-      tr.nodes(nodes);
-    }
-    layer.draw();
+    const pos = e.target.getStage().getPointerPosition();
+    selection.current.x2 = pos.x;
+    selection.current.y2 = pos.y;
+    updateSelectionRect();
   };
-  const handelCreateBlob = () => {
-    setPiks((prevBlobs) => [
-      ...prevBlobs,
+
+  const handelCreatePik = () => {
+    setIsRects(false);
+    setPiks((prevPiks) => [
+      ...prevPiks,
       {
         id: piks.toString(),
         x: piks.length * 100,
         color: Konva.Util.getRandomColor(),
       },
     ]);
-    console.log("x :" + piks.length * 100);
+    console.log("piks length : " + piks.length);
+  };
+  const handelCreateRect = () => {
+    setIsPiks(false);
+    setRects((prevRects) => [
+      ...prevRects,
+      {
+        id: rects.toString(),
+        x: rects.length * 100,
+        color: Konva.Util.getRandomColor(),
+      },
+    ]);
+    console.log("rects length : " + rects.length);
   };
   return (
     <>
-      <button onClick={handelCreateBlob}> CreateBlob</button>
+      <button onClick={handelCreatePik}> CreatePik</button>
+      <button onClick={handelCreateRect}> CreateRect</button>
       <Stage
-        width={window.innerWidth + 400}
-        height={window.innerHeight + 400}
+        width={window.innerWidth}
+        height={window.innerHeight}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseMove={onMouseMove}
-        onTouchStart={checkDeselect}
-        onClick={onClickTap}
       >
         <Layer ref={layerRef}>
+          {rects.map((rect, i) => {
+            return (
+              <TransformerRectangel
+                isRect={isRects}
+                key={i}
+                getKey={i}
+                color={rect.color}
+                shapeProps={rect}
+                isSelected={rect.id === selectShape}
+                onSelect={(e) => {
+                  if (e.current !== undefined) {
+                    let temp = nodesArray;
+                    if (!nodesArray.includes(e.current)) temp.push(e.current);
+                    setNodesArray(temp);
+                    trRef.current.nodes(nodesArray);
+                    trRef.current.nodes(nodesArray);
+                    trRef.current.getLayer().batchDraw();
+                  }
+                  setSelectShape(rect.id);
+                }}
+                onChange={(newAttrs) => {
+                  const rects = piks.slice();
+                  rects[i] = newAttrs;
+                  setPiks(rects);
+                  // console.log(rects)
+                }}
+                x={rect.x}
+              />
+            );
+          })}
+
           {piks.map((pik, i) => {
             return (
               <TransformerRectangel
+                isPik={isPiks}
                 key={i}
                 getKey={i}
                 color={pik.color}
                 shapeProps={pik}
                 isSelected={pik.id === selectShape}
-                getLength={piks.length}
                 onSelect={(e) => {
                   if (e.current !== undefined) {
                     let temp = nodesArray;
@@ -210,9 +176,7 @@ const App = () => {
               />
             );
           })}
-
           <Transformer
-            // ref={trRef.current[getKey]}
             ref={trRef}
             boundBoxFunc={(oldBox, newBox) => {
               // limit resize
