@@ -28,9 +28,9 @@ const initialPiks = [
   },
 ];
 const App = () => {
-  const [piks, setPiks] = useState(initialPiks);
+  const [piks, setPiks] = useState([]);
   const [selectShape, setSelectShape] = useState(null);
-  const [nodesArray, setNodes] = useState([]);
+  const [nodesArray, setNodesArray] = useState([]);
   const trRef = useRef();
   const layerRef = useRef();
   const Konva = window.Konva;
@@ -40,7 +40,7 @@ const App = () => {
     if (clickedOnEmpty) {
       setSelectShape(null);
       trRef.current.nodes([]);
-      setNodes([]);
+      setNodesArray([]);
       // layerRef.current.remove(selectionRectangle);
     }
   };
@@ -98,7 +98,6 @@ const App = () => {
       return;
     }
     const selBox = selectionRectRef.current.getClientRect();
-
     const elements = [];
     layerRef.current.find(".rectangle").forEach((elementNode) => {
       const elBox = elementNode.getClientRect();
@@ -124,7 +123,7 @@ const App = () => {
     // if click on empty area - remove all selections
     if (e.target === stage) {
       setSelectShape(null);
-      setNodes([]);
+      setNodesArray([]);
       tr.nodes([]);
       layer.draw();
       return;
@@ -157,61 +156,76 @@ const App = () => {
     }
     layer.draw();
   };
-
+  const handelCreateBlob = () => {
+    setPiks((prevBlobs) => [
+      ...prevBlobs,
+      {
+        id: piks.toString(),
+        x: piks.length * 100,
+        color: Konva.Util.getRandomColor(),
+      },
+    ]);
+    console.log("x :" + piks.length * 100);
+  };
   return (
-    <Stage
-      width={window.innerWidth + 400}
-      height={window.innerHeight + 400}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
-      onTouchStart={checkDeselect}
-      onClick={onClickTap}
-    >
-      <Layer ref={layerRef}>
-        {piks.map((rect, i) => {
-          return (
-            <TransformerRectangel
-              key={i}
-              getKey={i}
-              shapeProps={rect}
-              isSelected={rect.id === selectShape}
-              getLength={piks.length}
-              onSelect={(e) => {
-                if (e.current !== undefined) {
-                  let temp = nodesArray;
-                  if (!nodesArray.includes(e.current)) temp.push(e.current);
-                  setNodes(temp);
-                  trRef.current.nodes(nodesArray);
-                  trRef.current.nodes(nodesArray);
-                  trRef.current.getLayer().batchDraw();
-                }
-                setSelectShape(rect.id);
-              }}
-              onChange={(newAttrs) => {
-                const rects = piks.slice();
-                rects[i] = newAttrs;
-                setPiks(rects);
-                // console.log(rects)
-              }}
-            />
-          );
-        })}
+    <>
+      <button onClick={handelCreateBlob}> CreateBlob</button>
+      <Stage
+        width={window.innerWidth + 400}
+        height={window.innerHeight + 400}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseMove={onMouseMove}
+        onTouchStart={checkDeselect}
+        onClick={onClickTap}
+      >
+        <Layer ref={layerRef}>
+          {piks.map((pik, i) => {
+            return (
+              <TransformerRectangel
+                key={i}
+                getKey={i}
+                color={pik.color}
+                shapeProps={pik}
+                isSelected={pik.id === selectShape}
+                getLength={piks.length}
+                onSelect={(e) => {
+                  if (e.current !== undefined) {
+                    let temp = nodesArray;
+                    if (!nodesArray.includes(e.current)) temp.push(e.current);
+                    setNodesArray(temp);
+                    trRef.current.nodes(nodesArray);
+                    trRef.current.nodes(nodesArray);
+                    trRef.current.getLayer().batchDraw();
+                  }
+                  setSelectShape(pik.id);
+                }}
+                onChange={(newAttrs) => {
+                  const rects = piks.slice();
+                  rects[i] = newAttrs;
+                  setPiks(rects);
+                  // console.log(rects)
+                }}
+                x={pik.x}
+              />
+            );
+          })}
 
-        <Transformer
-          // ref={trRef.current[getKey]}
-          ref={trRef}
-          boundBoxFunc={(oldBox, newBox) => {
-            // limit resize
-            if (newBox.width < 5 || newBox.height < 5) {
-              return oldBox;
-            }
-            return newBox;
-          }}
-        />
-        <Rect fill="rgba(0,0,255,0.5)" ref={selectionRectRef} />
-      </Layer>
-    </Stage>
+          <Transformer
+            // ref={trRef.current[getKey]}
+            ref={trRef}
+            boundBoxFunc={(oldBox, newBox) => {
+              // limit resize
+              if (newBox.width < 5 || newBox.height < 5) {
+                return oldBox;
+              }
+              return newBox;
+            }}
+          />
+          <Rect fill="rgba(0,0,255,0.5)" ref={selectionRectRef} />
+        </Layer>
+      </Stage>
+    </>
   );
 };
 

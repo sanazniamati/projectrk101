@@ -1,15 +1,20 @@
 import React, { useRef } from "react";
 import { Line } from "react-konva";
 
-const TransformerRectangel = ({ shapeProps, onSelect, onChange }) => {
+const TransformerRectangel = ({ shapeProps, onSelect, onChange, x, color }) => {
   const shapeRef = useRef();
   return (
     <Line
+      stroke={color}
+      y={10}
+      points={[0, 0, 100, 0, 50, 100]}
       onClick={() => onSelect(shapeRef)}
       onTap={() => onSelect(shapeRef)}
       // ref={shapeRef.current[getKey]}
       ref={shapeRef}
       {...shapeProps}
+      x={x}
+      tension={0.5}
       name="rectangle"
       draggable
       closed={true}
